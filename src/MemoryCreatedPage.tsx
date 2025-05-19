@@ -300,22 +300,53 @@ const MemoryCreatedPage = () => {
         {/* Player do Spotify acima do nome do casal */}
         {(() => {
           const spotifyId = searchParams.get('spotifyId');
-          if (spotifyId) {
+          if (!spotifyId) return null;
+
+          // Detecta se é mobile
+          const isMobile = typeof window !== "undefined" && /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+
+          if (isMobile) {
+            // No mobile, mostra botão para abrir direto no app do Spotify
             return (
-              <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
-                <iframe
-                  src={`https://open.spotify.com/embed/track/${spotifyId}`}
-                  width="320"
-                  height="80"
-                  frameBorder="0"
-                  allow="encrypted-media"
-                  style={{ borderRadius: 8 }}
-                  title="Spotify Player"
-                ></iframe>
+              <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <button
+                  style={{
+                    background: '#1db954',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '12px 24px',
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                    marginBottom: 8,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    window.open(`spotify:track:${spotifyId}`, '_blank');
+                  }}
+                >
+                  Ouvir no Spotify
+                </button>
+                <span style={{ color: '#888', fontSize: 13 }}>Clique para abrir no app do Spotify</span>
               </div>
             );
           }
-          return null;
+
+          // Desktop: mostra o player embed normal
+          return (
+            <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <iframe
+                src={`https://open.spotify.com/embed/track/${spotifyId}`}
+                width="320"
+                height="80"
+                frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                style={{ borderRadius: 8, maxWidth: '100%' }}
+                title="Spotify Player"
+                allowFullScreen
+              ></iframe>
+            </div>
+          );
         })()}
         {/* Nome do casal estilizado */}
         {coupleName && (
