@@ -297,6 +297,26 @@ const MemoryCreatedPage = () => {
           justifyContent: 'center',
         }}>
         </div>
+        {/* Player do Spotify acima do nome do casal */}
+        {(() => {
+          const spotifyId = searchParams.get('spotifyId');
+          if (spotifyId) {
+            return (
+              <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
+                <iframe
+                  src={`https://open.spotify.com/embed/track/${spotifyId}`}
+                  width="320"
+                  height="80"
+                  frameBorder="0"
+                  allow="encrypted-media"
+                  style={{ borderRadius: 8 }}
+                  title="Spotify Player"
+                ></iframe>
+              </div>
+            );
+          }
+          return null;
+        })()}
         {/* Nome do casal estilizado */}
         {coupleName && (
           <div style={{ marginTop: '1.5rem', textAlign: 'center', position: 'relative', background: '#ffe4ec', borderRadius: '1rem', padding: '0.5rem 0 1.5rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>

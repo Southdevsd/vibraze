@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import MemoryCreatedPage from './MemoryCreatedPage';
 import { uploadToPostimages } from './utils/uploadToPostimages';
 import { QrCodePix } from 'qrcode-pix';
@@ -19,6 +19,13 @@ const EtapasForm = () => {
   const [showCreated, setShowCreated] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [titulo, setTitulo] = useState('');
+  const [spotifyUrl, setSpotifyUrl] = useState('');
+  const [spotifyEmbedId, setSpotifyEmbedId] = useState<string | null>(null);
+  const [spotifySearch, setSpotifySearch] = useState('');
+  const [spotifyResults, setSpotifyResults] = useState<any[]>([]);
+  const [spotifySelected, setSpotifySelected] = useState<{ id: string, name: string, artist: string } | null>(null);
+  const [spotifyToken, setSpotifyToken] = useState<string | null>(null);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Adiciona estados para etapa de pagamento
   const [paymentStep, setPaymentStep] = useState(false); // true se mostrar etapa 5
@@ -180,7 +187,10 @@ const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       relationshipDate,
       loveDeclaration,
       fotosCasal: JSON.stringify(fotosCasalUrls),
-      titulo // Passa o título para a MemoryCreatedPage
+      titulo,
+      spotifyId: spotifySelected?.id || '',
+      spotifyName: spotifySelected?.name || '',
+      spotifyArtist: spotifySelected?.artist || ''
     });
     window.open(`/MemoryCreate/${token}?${params.toString()}`, '_blank');
   };
@@ -566,6 +576,137 @@ const totalSteps = hasMoreThan2Photos || hasQrEmail || hasExtendedDuration ? 5 :
       </div>
     </div>
 
+  {/* spotify */}
+    <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: 10, marginBottom: '1rem', position: 'relative' }}>
+      <h4>🎵 Música especial do Spotify</h4>
+      <p>Busque e escolha uma música para tocar no seu site especial ou cole o link do Spotify</p>
+      {/* Novo campo para colar link do Spotify */}
+      <input
+        type="text"
+        placeholder="Cole o link da música do Spotify aqui"
+        value={spotifyUrl}
+        onChange={e => {
+          setSpotifyUrl(e.target.value);
+          setSpotifySelected(null);
+          setSpotifySearch('');
+        }}
+        style={{ ...inputStyle, marginBottom: '10px' }}
+      />
+      {/* Campo de busca só aparece se não tem link */}
+      {!spotifyUrl && (
+        <>
+          {/* Sugestões */}
+          {spotifyResults.length > 0 && !spotifySelected && (
+            <div style={{
+              position: 'absolute', background: '#fff', border: '1px solid #eee', borderRadius: 8, zIndex: 10,
+              width: '100%', maxHeight: 180, overflowY: 'auto', boxShadow: '0 2px 8px #eee'
+            }}>
+              {spotifyResults.map((track, idx) => (
+                <div
+                  key={track.id}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    borderBottom: idx !== spotifyResults.length - 1 ? '1px solid #f3f3f3' : 'none',
+                    color: '#333'
+                  }}
+                  onClick={() => {
+                    setSpotifySelected(track);
+                    setSpotifySearch(`${track.name} - ${track.artist}`);
+                    setSpotifyResults([]);
+                  }}
+                >
+                  <span style={{ color: '#f85a8e', fontWeight: 600 }}>{track.name}</span>
+                  <span style={{ color: '#888', marginLeft: 8, fontSize: 13 }}>({track.artist})</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      {/* Player aparece automaticamente se selecionou música OU colou link válido */}
+      {(() => {
+        // Se selecionou música por busca
+        if (spotifySelected && spotifySelected.id) {
+          return (
+            <div style={{ marginTop: 10, marginBottom: 8 }}>
+              <div style={{ color: '#f85a8e', fontWeight: 600, fontSize: 15 }}>
+                Música escolhida: {spotifySelected.name}
+                {spotifySelected.artist && (
+                  <span style={{ color: '#888', fontWeight: 400 }}> ({spotifySelected.artist})</span>
+                )}
+                <button
+                  style={{
+                    marginLeft: 12, background: 'none', border: 'none', color: '#f85a8e', cursor: 'pointer', fontWeight: 700, fontSize: 15
+                  }}
+                  onClick={() => { setSpotifySelected(null); setSpotifySearch(''); setSpotifyUrl(''); }}
+                  title="Remover música"
+                >×</button>
+              </div>
+              <iframe
+                src={`https://open.spotify.com/embed/track/${spotifySelected.id}`}
+                width="100%"
+                height="80"
+                frameBorder="0"
+                allow="encrypted-media"
+                style={{ borderRadius: 8, marginTop: 6 }}
+                title="Spotify Player"
+              ></iframe>
+            </div>
+          );
+        }
+        // Se colou link válido (corrigido para aceitar parâmetros)
+        if (spotifyUrl) {
+          // Aceita links como .../track/ID ou .../track/ID?si=...
+          const match = spotifyUrl.match(/spotify\.com\/.*track\/([a-zA-Z0-9]+)(\?|$)/);
+          const id = match ? match[1] : null;
+          if (!id) return null;
+          return (
+            <div style={{ marginTop: 10, marginBottom: 8 }}>
+              <iframe
+                src={`https://open.spotify.com/embed/track/${id}`}
+                width="100%"
+                height="80"
+                frameBorder="0"
+                allow="encrypted-media"
+                style={{ borderRadius: 8, marginTop: 6 }}
+                title="Spotify Player"
+              ></iframe>
+              {/* Botão para selecionar a música do link, se ainda não foi selecionada */}
+              {!spotifySelected && (
+                <button
+                  style={{
+                    marginTop: 8,
+                    backgroundColor: '#f85a8e',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '8px 18px',
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    setSpotifySelected({ id, name: 'Música do link', artist: '' });
+                    setSpotifyEmbedId(id);
+                  }}
+                >
+                  Selecionar esta música
+                </button>
+              )}
+            </div>
+          );
+        }
+        return null;
+      })()}
+      {/* Nenhum resultado encontrado */}
+      {!spotifySelected && !spotifyUrl && spotifySearch && spotifyResults.length === 0 && (
+        <div style={{ color: '#f85a8e', marginTop: 8, fontSize: 13 }}>
+          Nenhum resultado encontrado.
+        </div>
+      )}
+    </div>
+
     {/* QR Code */}
     <div style={{ backgroundColor: '#fff', padding: '1.5rem', borderRadius: 10, marginBottom: '1rem' }}>
       <h4>🔐 QR Code + Surpresa</h4>
@@ -689,21 +830,48 @@ const totalSteps = hasMoreThan2Photos || hasQrEmail || hasExtendedDuration ? 5 :
           <span style={{ width: '12px', height: '12px', borderRadius: '9999px', backgroundColor: '#facc15' }}></span>
           <span style={{ width: '12px', height: '12px', borderRadius: '9999px', backgroundColor: '#4ade80' }}></span>
         </div>
-{/* Nome do casal */}
-{coupleName && (
-  <div style={{
-    marginTop: '1.5rem',
-    textAlign: 'center'
-  }}>
-    <h4 style={{
-      fontSize: '1.25rem',
-      fontWeight: 'bold',
-      color: '#db2777'
-    }}>
-      {coupleName}
-    </h4>
-  </div>
-)}
+        {/* Player do Spotify acima do nome do casal */}
+        {(() => {
+          let id = null;
+          if (spotifySelected && spotifySelected.id) id = spotifySelected.id;
+          else if (spotifyUrl) {
+            const match = spotifyUrl.match(/spotify\.com\/.*track\/([a-zA-Z0-9]+)(\?|$)/);
+            id = match ? match[1] : null;
+          }
+          if (id) {
+            return (
+              <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Usa o player open.spotify.com/embed/track normalmente */}
+                <iframe
+                  src={`https://open.spotify.com/embed/track/${id}`}
+                  width="320"
+                  height="80"
+                  frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  style={{ borderRadius: 8, maxWidth: '100%' }}
+                  title="Spotify Player"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            );
+          }
+          return null;
+        })()}
+        {/* Nome do casal */}
+        {coupleName && (
+          <div style={{
+            marginTop: '1.5rem',
+            textAlign: 'center'
+          }}>
+            <h4 style={{
+              fontSize: '1.25rem',
+              fontWeight: 'bold',
+              color: '#db2777'
+            }}>
+              {coupleName}
+            </h4>
+          </div>
+        )}
 
 {/* Título personalizado acima do contador */}
 {titulo && (
