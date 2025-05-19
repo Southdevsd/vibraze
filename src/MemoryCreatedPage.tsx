@@ -301,38 +301,7 @@ const MemoryCreatedPage = () => {
         {(() => {
           const spotifyId = searchParams.get('spotifyId');
           if (!spotifyId) return null;
-
-          // Detecta se é mobile
-          const isMobile = typeof window !== "undefined" && /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-
-          if (isMobile) {
-            // No mobile, mostra botão para abrir direto no app do Spotify
-            return (
-              <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <button
-                  style={{
-                    background: '#1db954',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: '12px 24px',
-                    fontWeight: 700,
-                    fontSize: '1.1rem',
-                    marginBottom: 8,
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => {
-                    window.open(`spotify:track:${spotifyId}`, '_blank');
-                  }}
-                >
-                  Ouvir no Spotify
-                </button>
-                <span style={{ color: '#888', fontSize: 13 }}>Clique para abrir no app do Spotify</span>
-              </div>
-            );
-          }
-
-          // Desktop: mostra o player embed normal
+          // Sempre mostra o player embed, tanto desktop quanto mobile
           return (
             <div style={{ marginTop: 24, marginBottom: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <iframe
